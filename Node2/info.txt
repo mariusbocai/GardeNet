@@ -1,0 +1,2 @@
+Node2 is the middle Node, master Router.
+-> It is connected to the Gateway directly
