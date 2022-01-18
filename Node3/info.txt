@@ -1,0 +1,3 @@
+Node3 is the Node from the garden, responsible to:
+-> Check Water tank level: nodeMCU_level
+-> Actuate pump and valve: nodeMCU_pic
