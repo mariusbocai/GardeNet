@@ -31,6 +31,7 @@ const char* mqtt_server = "192.168.0.79";
 /*Working variables*/
 unsigned char tokenEn, tokenIsMine;
 unsigned long now, nextExpectedAct;
+static unsigned char currentState = 0;
 
 enum States{
   Idle =0,
@@ -152,6 +153,7 @@ void setup() {
   tokenIsMine = 0;
   now = 0;
   nextExpectedAct = 0;
+  currentState = Idle;
   #if loggingEn
   Serial.begin(115200);
   #endif
@@ -162,8 +164,6 @@ void setup() {
 
 void StateMachine(void)
 {
-  static unsigned char currentState = 0;
-
   switch(currentState)
   {
     case Idle:
@@ -187,6 +187,8 @@ void StateMachine(void)
       if (now > nextExpectedAct)
       {
         currentState = Idle;
+        tokenEn = 0;
+        tokenIsMine = 0; //might not be needed...
         /*No reply received, a reset will be performed!!!!*/
         digitalWrite(RelayPin1,HIGH);
         delay(1000);    /*1 second reset should be enough*/
@@ -207,6 +209,7 @@ void StateMachine(void)
       now = millis();
       if(now > nextExpectedAct)
       {
+        nextExpectedAct += 3600000;
         currentState = Idle;
       }
       break;
