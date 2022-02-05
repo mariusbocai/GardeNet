@@ -3,12 +3,11 @@ This file is my attempt to build a test environment for this complex algorithm.
 We'll see if this works out...
 */
 
-/*Working variables*/
-unsigned char tokenEn, tokenIsMine;
-unsigned long now, nextExpectedAct;
-static unsigned char currentState = 0;
+unsigned char tokenEn, tokenIsMine1, tokenIsMine2, tokenIsMine3;
+unsigned long now1, now2, now3, nextExpectedAct1, nextExpectedAct2, nextExpectedAct3, globalTime;
+unsigned char currentState1, currentState2, currentState3;
 
-  enum States{
+ enum States{
   Startup = 0,
   Idle,
   Wait,
@@ -19,51 +18,76 @@ static unsigned char currentState = 0;
   Act2,
   EndAll};
   
-  void setup() {
+ void setup() {
   tokenEn = 0;
-  tokenIsMine = 0;
-  now = 0;
-  nextExpectedAct = 0;
-  currentState = Idle;
+  tokenIsMine1 = 0;
+  tokenIsMine2 = 0;
+  tokenIsMine3 = 0;
+  now1 = 0;
+  now2 = 0;
+  now3 = 0;
+  nextExpectedAct1 = 0;
+  nextExpectedAct2 = 0;
+  nextExpectedAct3 = 0;
+  currentState1 = Idle;
+  currentState2 = Startup;
+  currentState3 = Startup;
+}
+
+void PassTheToken(unsigned char toNode)
+{
+	if (toNode == 1)
+	{
+		tokenIsMine1 = 1;
+		printf("Pass the token to Node1/n");
+	}
+	if (toNode == 2)
+	{
+		tokenIsMine2 = 1;
+		printf("Pass the token to Node2/n");
+	}
+	if (toNode == 3)
+	{
+		tokenIsMine3 = 1;
+		printf("Pass the token to Node3/n");
+	}
 }
 
 void StateMachine1(void)
 {
-  switch(currentState)
+  switch(currentState1)
   {
     case Idle:
     {
       if(tokenEn == 1)
       {
-        currentState = StartUp;
+        currentState1 = StartUp;
       }
       break;
     }
     case StartUp:
     {
-      client.publish("TokenPass", "2"); /*Pass the token to Node2*/
-      tokenIsMine = 0;
-      currentState = Waiting;
+      PassTheToken(2); /*Pass the token to Node2*/
+      tokenIsMine1 = 0;
+      currentState1 = Waiting;
       break;
     }
     case Waiting:
     {
-      now = millis();
-      if (now > nextExpectedAct)
+      now1 = millis();
+      if (now1 > nextExpectedAct1)
       {
-        currentState = Idle;
+        currentState1 = Idle;
         tokenEn = 0;
-        tokenIsMine = 0; //might not be needed...
+        tokenIsMine1 = 0; //might not be needed...
         /*No reply received, a reset will be performed!!!!*/
-        digitalWrite(RelayPin1,HIGH);
-        delay(1000);    /*1 second reset should be enough*/
-        digitalWrite(RelayPin1,LOW);
+		printf("Reset Node1/n");
       }
       else
       {
-        if(tokenIsMine == 1)
+        if(tokenIsMine1 == 1)
         {
-          currentState = EndAll;
+          currentState1 = EndAll;
         }
       }
       break;
@@ -71,11 +95,11 @@ void StateMachine1(void)
     case EndAll:
     {
       /*Cycle finished succesfully, wait to cycle end and restart the process*/
-      now = millis();
-      if(now > nextExpectedAct)
+      now1 = millis();
+      if(now1 > nextExpectedAct1)
       {
-        nextExpectedAct += 3600000;
-        currentState = Idle;
+        nextExpectedAct1 += 3600000;
+        currentState1 = Idle;
       }
       break;
     }
@@ -84,86 +108,82 @@ void StateMachine1(void)
 
 void StateMachine2(void)
 {
-  switch(currentState)
+  switch(currentState2)
   {
     case Startup:
     {
-      if((tokenEn == 1) && (tokenIsMine == 1))
+      if((tokenEn == 1) && (tokenIsMine2 == 1))
       {
-        currentState = Waiting1;
-        now = millis();
-        client.publish("TokenPass", "3"); /*Pass the token to Node3*/
-        tokenIsMine = 0;
-        nextExpectedAct = now + 3600000; 
+        currentState2 = Waiting1;
+        now2 = millis();
+        PassTheToken(3); /*Pass the token to Node3*/
+        tokenIsMine2 = 0;
+        nextExpectedAct2 = now2 + 3600000; 
       }
       else
       {
         if(tokenEn == 0)
         {
-          tokenIsMine = 0;   //just as a precaution...
+          tokenIsMine2 = 0;   //just as a precaution...
         }
       }
       break;
     }
     case Idle:
     {
-      now = millis();
-      nextExpectedAct = now + 3600000; //set next timeout
+      now2 = millis();
+      nextExpectedAct2 = now2 + 3600000; //set next timeout
       if(tokenEn == 1)
       {
-        if (tokenIsMine == 1)
+        if (tokenIsMine2 == 1)
         {
-          now = millis();
-          client.publish("TokenPass", "3"); /*Pass the token to Node3*/
-          tokenIsMine = 0;
-          currentState = Waiting1;
+          now2 = millis();
+          PassTheToken(3); /*Pass the token to Node3*/
+          tokenIsMine2 = 0;
+          currentState2 = Waiting1;
         }
         else
         {
-          if(now > nextExpectedAct)
+          if(now2 > nextExpectedAct2)
           {
             //did not receive the token from Node 1
-            tokenIsMine = 0;
+            tokenIsMine2 = 0;
             tokenEn = 0;
-            nextExpectedAct = 0;
-            currentState = Startup;
-            digitalWrite(RelayPin1,HIGH);
-            delay(1000);    /*1 second reset should be enough*/
-            digitalWrite(RelayPin1,LOW);
+            nextExpectedAct2 = 0;
+            currentState2 = Startup;
+            printf("Reset Node2/n");
           }
         }
 
       }
       else
       {
-        tokenIsMine = 0;
-        nextExpectedAct = 0;
-        currentState = Startup;
+        tokenIsMine2 = 0;
+        nextExpectedAct2 = 0;
+        currentState2 = Startup;
         //stop the whole thing, token has been disabled
       }
       break;
     }
     case Waiting1:
     {
-      now = millis();
-      if (now > nextExpectedAct)
+      now2 = millis();
+      if (now2 > nextExpectedAct2)
       {
-        currentState = Startup;
-        tokenIsMine = 0;
+        currentState2 = Startup;
+        tokenIsMine2 = 0;
         tokenEn = 0;
-        nextExpectedAct = 0;
+        nextExpectedAct2 = 0;
         /*No reply received, a reset will be performed!!!!*/
-        digitalWrite(RelayPin1,HIGH);
-        delay(1000);    /*1 second reset should be enough*/
-        digitalWrite(RelayPin1,LOW);
+        printf("Reset Node2/n");
       }
       else
       {
-        if(tokenIsMine == 1)
+        if(tokenIsMine2 == 1)
         {
-          client.publish("TokenPass", "1"); /*Pass the token to Node1*/
-          tokenIsMine = 0;
-          currentState = EndAll;
+          PassTheToken(1); /*Pass the token to Node1*/
+          tokenIsMine2 = 0;
+          currentState2 = EndAll;
         }
       }
       break;
@@ -171,35 +191,35 @@ void StateMachine2(void)
     case EndAll:
     {
       /*Cycle finished succesfully, wait to cycle end and restart the process*/
-      now = millis();
-      if(now > nextExpectedAct)
+      now2 = millis();
+      if(now2 > nextExpectedAct2)
       {
-        currentState = Idle;
+        currentState2 = Idle;
       }
       break;
     }
   }
 }
 
-void StateMachine(void)
+void StateMachine3(void)
 {
-  switch(currentState)
+  switch(currentState3)
   {
     case Startup:
     {
-      if((tokenEn == 1) && (tokenIsMine == 1))
+      if((tokenEn == 1) && (tokenIsMine3 == 1))
       {
-        currentState = Wait;
-        now = millis();
+        currentState3 = Wait;
+        now3 = millis();
         client.publish("TokenPass", "2"); /*Pass the token to Node2*/
-        tokenIsMine = 0;
-        nextExpectedAct = now + 3600000; 
+        tokenIsMine3 = 0;
+        nextExpectedAct3 = now3 + 3600000; 
       }
       else
       {
         if(tokenEn == 0)
         {
-          tokenIsMine = 0;   //just as a precaution...
+          tokenIsMine3 = 0;   //just as a precaution...
         }
       }
       break;
@@ -208,24 +228,23 @@ void StateMachine(void)
     {
       if(tokenEn == 1)
       {
-        if (tokenIsMine == 1)
+        if (tokenIsMine3 == 1)
         {
-          now = millis();
-          nextExpectedAct = now + 3600000; //set next cycle end time
-          now = millis();
+          now3 = millis();
+          nextExpectedAct3 = now3 + 3600000; //set next cycle end time
           client.publish("TokenPass", "2"); /*Pass the token to Node3*/
-          tokenIsMine = 0;
-          currentState = Wait;
+          tokenIsMine3 = 0;
+          currentState3 = Wait;
         }
         else
         {
-          if(now > nextExpectedAct)
+          if(now3 > nextExpectedAct3)
           {
             //did not receive the token from Node 1
-            tokenIsMine = 0;
+            tokenIsMine3 = 0;
             tokenEn = 0;
-            nextExpectedAct = 0;
-            currentState = Startup;
+            nextExpectedAct3 = 0;
+            currentState3 = Startup;
             digitalWrite(RelayPin1,HIGH);
             delay(1000);    /*1 second reset should be enough*/
             digitalWrite(RelayPin1,LOW);
@@ -235,20 +254,20 @@ void StateMachine(void)
       }
       else
       {
-        tokenIsMine = 0;
-        nextExpectedAct = 0;
-        currentState = Startup;
+        tokenIsMine3 = 0;
+        nextExpectedAct3 = 0;
+        currentState3 = Startup;
         //stop the whole thing, token has been disabled
       }
       break;
     }
     case Wait:
     {
-      now = millis();
-      if(now > nextExpectedAct)
+      now3 = millis();
+      if(now3 > nextExpectedAct3)
       {
-        currentState = Idle;
-        nextExpectedAct += 3600000;  //set the timeout
+        currentState3 = Idle;
+        nextExpectedAct3 += 3600000;  //set the timeout
       }
     }
   }

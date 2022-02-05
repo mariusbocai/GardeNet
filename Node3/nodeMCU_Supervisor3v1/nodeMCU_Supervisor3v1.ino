@@ -190,7 +190,6 @@ void StateMachine(void)
         {
           now = millis();
           nextExpectedAct = now + 3600000; //set next cycle end time
-          now = millis();
           client.publish("TokenPass", "2"); /*Pass the token to Node3*/
           tokenIsMine = 0;
           currentState = Wait;
