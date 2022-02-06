@@ -3,8 +3,16 @@ This file is my attempt to build a test environment for this complex algorithm.
 We'll see if this works out...
 */
 
-unsigned char tokenEn, tokenIsMine1, tokenIsMine2, tokenIsMine3;
-unsigned long now1, now2, now3, nextExpectedAct1, nextExpectedAct2, nextExpectedAct3, globalTime;
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define TimeToTimeout 10u
+
+unsigned char tokenEn1, tokenEn2, tokenEn3, tokenIsMine1, tokenIsMine2, tokenIsMine3;
+unsigned int now1, now2, now3, nextExpectedAct1, nextExpectedAct2, nextExpectedAct3;
+unsigned int timeClock;
+unsigned int iterations, Kill1, Kill2, Kill3;
 unsigned char currentState1, currentState2, currentState3;
 
  enum States{
@@ -17,9 +25,16 @@ unsigned char currentState1, currentState2, currentState3;
   Waiting2,
   Act2,
   EndAll};
-  
+ 
+ unsigned int millisec()
+{
+	return timeClock;
+}
+
  void setup() {
-  tokenEn = 0;
+  tokenEn1 = 0;
+  tokenEn2 = 0;
+  tokenEn3 = 0;
   tokenIsMine1 = 0;
   tokenIsMine2 = 0;
   tokenIsMine3 = 0;
@@ -32,24 +47,48 @@ unsigned char currentState1, currentState2, currentState3;
   currentState1 = Idle;
   currentState2 = Startup;
   currentState3 = Startup;
+  timeClock = 0;
+  nextExpectedAct1 = millisec() + TimeToTimeout;
 }
 
 void PassTheToken(unsigned char toNode)
 {
+	
 	if (toNode == 1)
 	{
-		tokenIsMine1 = 1;
-		printf("Pass the token to Node1/n");
+		if((Kill1 != 0)&&(Kill1 <= timeClock))
+		{
+			printf("Did not pass the token to Node1\n");
+		}
+		else
+		{
+			tokenIsMine1 = 1;
+		}
+		//printf("Pass the token to Node1\n");
 	}
 	if (toNode == 2)
 	{
-		tokenIsMine2 = 1;
-		printf("Pass the token to Node2/n");
+		if((Kill2 != 0)&&(Kill2 <= timeClock))
+		{
+			printf("Did not pass the token to Node2\n");
+		}
+		else
+		{
+			tokenIsMine2 = 1;
+		}
+		//printf("Pass the token to Node2\n");
 	}
 	if (toNode == 3)
 	{
-		tokenIsMine3 = 1;
-		printf("Pass the token to Node3/n");
+		if((Kill3 != 0)&&(Kill3 <= timeClock))
+		{
+			printf("Did not pass the token to Node3\n");
+		}
+		else
+		{
+			tokenIsMine3 = 1;
+		}
+		//printf("Pass the token to Node3\n");
 	}
 }
 
@@ -59,14 +98,15 @@ void StateMachine1(void)
   {
     case Idle:
     {
-      if(tokenEn == 1)
+      if(tokenEn1 == 1)
       {
-        currentState1 = StartUp;
+        currentState1 = Startup;
       }
       break;
     }
-    case StartUp:
+    case Startup:
     {
+	  printf("Node1 passing token to Node2\n");
       PassTheToken(2); /*Pass the token to Node2*/
       tokenIsMine1 = 0;
       currentState1 = Waiting;
@@ -74,14 +114,14 @@ void StateMachine1(void)
     }
     case Waiting:
     {
-      now1 = millis();
+      now1 = millisec();
       if (now1 > nextExpectedAct1)
       {
         currentState1 = Idle;
-        tokenEn = 0;
+        tokenEn1 = 0;
         tokenIsMine1 = 0; //might not be needed...
         /*No reply received, a reset will be performed!!!!*/
-		printf("Reset Node1/n");
+		printf("Reset Node1\n");
       }
       else
       {
@@ -95,10 +135,10 @@ void StateMachine1(void)
     case EndAll:
     {
       /*Cycle finished succesfully, wait to cycle end and restart the process*/
-      now1 = millis();
+      now1 = millisec();
       if(now1 > nextExpectedAct1)
       {
-        nextExpectedAct1 += 3600000;
+        nextExpectedAct1 += TimeToTimeout;
         currentState1 = Idle;
       }
       break;
@@ -112,17 +152,18 @@ void StateMachine2(void)
   {
     case Startup:
     {
-      if((tokenEn == 1) && (tokenIsMine2 == 1))
+      if((tokenEn2 == 1) && (tokenIsMine2 == 1))
       {
         currentState2 = Waiting1;
-        now2 = millis();
+        now2 = millisec();
+		printf("Node2 passing token to Node3\n");
         PassTheToken(3); /*Pass the token to Node3*/
         tokenIsMine2 = 0;
-        nextExpectedAct2 = now2 + 3600000; 
+        nextExpectedAct2 = now2 + TimeToTimeout; 
       }
       else
       {
-        if(tokenEn == 0)
+        if(tokenEn2 == 0)
         {
           tokenIsMine2 = 0;   //just as a precaution...
         }
@@ -131,13 +172,14 @@ void StateMachine2(void)
     }
     case Idle:
     {
-      now2 = millis();
-      nextExpectedAct2 = now2 + 3600000; //set next timeout
-      if(tokenEn == 1)
+      now2 = millisec();
+      //nextExpectedAct2 = now2 + TimeToTimeout; //set next timeout
+      if(tokenEn2 == 1)
       {
         if (tokenIsMine2 == 1)
         {
-          now2 = millis();
+          now2 = millisec();
+		  printf("Node2 passing token to Node3\n");
           PassTheToken(3); /*Pass the token to Node3*/
           tokenIsMine2 = 0;
           currentState2 = Waiting1;
@@ -148,10 +190,10 @@ void StateMachine2(void)
           {
             //did not receive the token from Node 1
             tokenIsMine2 = 0;
-            tokenEn = 0;
+            tokenEn2 = 0;
             nextExpectedAct2 = 0;
             currentState2 = Startup;
-            printf("Reset Node2/n");
+            printf("Reset Node2\n");
           }
         }
 
@@ -161,26 +203,28 @@ void StateMachine2(void)
         tokenIsMine2 = 0;
         nextExpectedAct2 = 0;
         currentState2 = Startup;
+		printf("Node2 disabled\n");
         //stop the whole thing, token has been disabled
       }
       break;
     }
     case Waiting1:
     {
-      now2 = millis();
+      now2 = millisec();
       if (now2 > nextExpectedAct2)
       {
         currentState2 = Startup;
         tokenIsMine2 = 0;
-        tokenEn = 0;
+        tokenEn2 = 0;
         nextExpectedAct2 = 0;
         /*No reply received, a reset will be performed!!!!*/
-        printf("Reset Node2/n");
+        printf("Reset Node2\n");
       }
       else
       {
         if(tokenIsMine2 == 1)
         {
+          printf("Node2 passing token to Node1\n");
           PassTheToken(1); /*Pass the token to Node1*/
           tokenIsMine2 = 0;
           currentState2 = EndAll;
@@ -191,10 +235,12 @@ void StateMachine2(void)
     case EndAll:
     {
       /*Cycle finished succesfully, wait to cycle end and restart the process*/
-      now2 = millis();
+      now2 = millisec();
       if(now2 > nextExpectedAct2)
       {
+		nextExpectedAct2 += TimeToTimeout;
         currentState2 = Idle;
+		//printf("Node2 going to Idle\n");
       }
       break;
     }
@@ -207,17 +253,18 @@ void StateMachine3(void)
   {
     case Startup:
     {
-      if((tokenEn == 1) && (tokenIsMine3 == 1))
+      if((tokenEn3 == 1) && (tokenIsMine3 == 1))
       {
         currentState3 = Wait;
-        now3 = millis();
-        client.publish("TokenPass", "2"); /*Pass the token to Node2*/
+        now3 = millisec();
+		printf("Node3 passing token to Node2\n");
+        PassTheToken(2); /*Pass the token to Node2*/
         tokenIsMine3 = 0;
-        nextExpectedAct3 = now3 + 3600000; 
+        nextExpectedAct3 = now3 + TimeToTimeout; 
       }
       else
       {
-        if(tokenEn == 0)
+        if(tokenEn3 == 0)
         {
           tokenIsMine3 = 0;   //just as a precaution...
         }
@@ -226,13 +273,14 @@ void StateMachine3(void)
     }
     case Idle:
     {
-      if(tokenEn == 1)
+      if(tokenEn3 == 1)
       {
+        now3 = millisec();
         if (tokenIsMine3 == 1)
         {
-          now3 = millis();
-          nextExpectedAct3 = now3 + 3600000; //set next cycle end time
-          client.publish("TokenPass", "2"); /*Pass the token to Node3*/
+          nextExpectedAct3 = now3 + TimeToTimeout; //set next cycle end time
+		  printf("Node3 passing token to Node2\n");
+          PassTheToken(2); /*Pass the token to Node3*/
           tokenIsMine3 = 0;
           currentState3 = Wait;
         }
@@ -242,12 +290,10 @@ void StateMachine3(void)
           {
             //did not receive the token from Node 1
             tokenIsMine3 = 0;
-            tokenEn = 0;
+            tokenEn3 = 0;
             nextExpectedAct3 = 0;
             currentState3 = Startup;
-            digitalWrite(RelayPin1,HIGH);
-            delay(1000);    /*1 second reset should be enough*/
-            digitalWrite(RelayPin1,LOW);
+            printf("Reset Node3\n");
           }
         }
 
@@ -263,12 +309,61 @@ void StateMachine3(void)
     }
     case Wait:
     {
-      now3 = millis();
+      now3 = millisec();
       if(now3 > nextExpectedAct3)
       {
         currentState3 = Idle;
-        nextExpectedAct3 += 3600000;  //set the timeout
+        nextExpectedAct3 += TimeToTimeout;  //set the timeout +TODO
       }
     }
   }
+}
+
+void callSms(void)
+{
+	StateMachine1();
+	StateMachine2();
+	StateMachine3();
+	StateMachine2();
+	StateMachine3();
+	StateMachine2();
+}
+
+int main(int argc, char **argv)
+{
+	unsigned int iterations,i,j;
+	
+	for (j = 1; j < argc; j++) 
+	{
+		if (!strcmp(argv[j],"--KillNode1")) 
+		{
+			Kill1 = atoi(argv[++j]);
+			printf("Killing Node1 at %i \n", Kill1);
+		}
+		if (!strcmp(argv[j],"--KillNode2")) 
+		{
+			Kill2 = atoi(argv[++j]);
+			printf("Killing Node2 at %i \n", Kill2);
+		}
+		if (!strcmp(argv[j],"--KillNode3")) 
+		{
+			Kill3 = atoi(argv[++j]);
+			printf("Killing Node3 at %i \n", Kill3);
+		}
+	}
+	
+	setup();
+	callSms();
+	tokenEn1 = 1;
+	tokenEn2 = 1;
+	tokenEn3 = 1;
+	printf("Token is enabled\n");
+    iterations = atoi(argv[1]);
+	for(i = 0; i < iterations; i++)
+	{
+		timeClock++;
+		callSms();
+		printf("======  Time is %i \n", timeClock);
+	}
+	//scanf("%d", &iterations);
 }

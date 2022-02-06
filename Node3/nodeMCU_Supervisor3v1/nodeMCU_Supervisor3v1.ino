@@ -186,9 +186,9 @@ void StateMachine(void)
     {
       if(tokenEn == 1)
       {
+        now = millis();
         if (tokenIsMine == 1)
         {
-          now = millis();
           nextExpectedAct = now + 3600000; //set next cycle end time
           client.publish("TokenPass", "2"); /*Pass the token to Node3*/
           tokenIsMine = 0;

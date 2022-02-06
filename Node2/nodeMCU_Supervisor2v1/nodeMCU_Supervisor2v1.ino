@@ -189,7 +189,6 @@ void StateMachine(void)
     case Idle:
     {
       now = millis();
-      nextExpectedAct = now + 3600000; //set next timeout
       if(tokenEn == 1)
       {
         if (tokenIsMine == 1)
@@ -255,6 +254,7 @@ void StateMachine(void)
       now = millis();
       if(now > nextExpectedAct)
       {
+        nextExpectedAct = now + 3600000; 
         currentState = Idle;
       }
       break;
